@@ -18,9 +18,10 @@
 7. [Messaging APIs](#messaging-apis)
 8. [Voice Call APIs](#voice-call-apis)
 9. [Phone Number Management APIs](#phone-number-management-apis)
-10. [Pricing & Costs](#pricing--costs)
-11. [Rate Limits](#rate-limits)
-12. [Best Practices](#best-practices)
+10. [Subaccount Management APIs](#subaccount-management-apis)
+11. [Pricing & Costs](#pricing--costs)
+12. [Rate Limits](#rate-limits)
+13. [Best Practices](#best-practices)
 
 ---
 
@@ -1346,6 +1347,368 @@ curl -X DELETE http://localhost:4000/api/phone/numbers/PNxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 **Cost:** 💰 **FREE** (stops future monthly charges)
+
+---
+
+## Subaccount Management APIs
+
+Twilio subaccounts allow you to partition resources and usage within your main Twilio account. Each subaccount functions like a separate Twilio account with its own credentials, but billing rolls up to the parent account.
+
+**Use Cases:**
+- 🏢 Multi-tenant applications (separate resources per customer)
+- 🔐 Security isolation (limit access to specific resources)
+- 📊 Usage tracking (monitor costs per client/project)
+- 👥 Team management (separate development/staging/production)
+
+### 20. Create Subaccount
+
+Create a new Twilio subaccount under your master account.
+
+**Endpoint:** `POST /api/phone/subaccounts`
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `friendlyName` | string | ✅ Yes | Name for the subaccount |
+
+**Request:**
+```json
+{
+  "friendlyName": "Production Client A"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "sid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "friendlyName": "Production Client A",
+    "status": "active",
+    "authToken": "your_subaccount_auth_token",
+    "dateCreated": "2024-01-01T00:00:00.000Z",
+    "type": "Full",
+    "ownerAccountSid": "ACyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+  }
+}
+```
+
+**Field Descriptions:**
+- `sid`: Subaccount SID (use as Account SID for subaccount operations)
+- `friendlyName`: Your chosen name
+- `status`: Account status (active, suspended, closed)
+- `authToken`: Auth token for this subaccount (save securely!)
+- `type`: Account type (typically "Full")
+- `ownerAccountSid`: Your master account SID
+
+**⚠️ Important:**
+- **Save the `authToken`** immediately - it's only shown once on creation
+- Use `sid` + `authToken` to initialize a Twilio client for subaccount operations
+- Subaccount inherits no resources from parent (no phone numbers, messages, etc.)
+
+**cURL:**
+```bash
+curl -X POST http://localhost:4000/api/phone/subaccounts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "friendlyName": "Production Client A"
+  }'
+```
+
+**Cost:** 💰 **FREE** to create (pay only for subaccount usage)
+
+---
+
+### 21. List All Subaccounts
+
+Get a list of all subaccounts under your master account.
+
+**Endpoint:** `GET /api/phone/subaccounts`
+
+**Query Parameters:**
+
+| Field | Type | Required | Description | Options |
+|-------|------|----------|-------------|---------|
+| `friendlyName` | string | ❌ No | Filter by name | Partial match |
+| `status` | string | ❌ No | Filter by status | `active`, `suspended`, `closed` |
+| `limit` | integer | ❌ No | Max results | Default: 50 |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "sid": "AC11111111111111111111111111111111",
+      "friendlyName": "Production Client A",
+      "status": "active",
+      "type": "Full",
+      "dateCreated": "2024-01-01T00:00:00.000Z",
+      "dateUpdated": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "sid": "AC22222222222222222222222222222222",
+      "friendlyName": "Staging Environment",
+      "status": "active",
+      "type": "Full",
+      "dateCreated": "2024-01-02T00:00:00.000Z",
+      "dateUpdated": "2024-01-02T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+**cURL Examples:**
+
+```bash
+# List all subaccounts
+curl http://localhost:4000/api/phone/subaccounts
+
+# Filter by status
+curl "http://localhost:4000/api/phone/subaccounts?status=active"
+
+# Filter by name
+curl "http://localhost:4000/api/phone/subaccounts?friendlyName=Client"
+
+# With limit
+curl "http://localhost:4000/api/phone/subaccounts?limit=10"
+```
+
+**Cost:** 💰 **FREE**
+
+---
+
+### 22. Get Subaccount Details
+
+Retrieve detailed information about a specific subaccount.
+
+**Endpoint:** `GET /api/phone/subaccounts/:subaccountSid`
+
+**Path Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `subaccountSid` | string | ✅ Yes | Subaccount SID (starts with `AC`) |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "sid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "friendlyName": "Production Client A",
+    "status": "active",
+    "type": "Full",
+    "dateCreated": "2024-01-01T00:00:00.000Z",
+    "dateUpdated": "2024-01-05T00:00:00.000Z",
+    "ownerAccountSid": "ACyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+  }
+}
+```
+
+**cURL:**
+```bash
+curl http://localhost:4000/api/phone/subaccounts/ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+**Cost:** 💰 **FREE**
+
+---
+
+### 23. Update Subaccount
+
+Update a subaccount's friendly name or status.
+
+**Endpoint:** `PUT /api/phone/subaccounts/:subaccountSid`
+
+**Path Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `subaccountSid` | string | ✅ Yes | Subaccount SID |
+
+**Request Body:**
+
+| Field | Type | Required | Description | Options |
+|-------|------|----------|-------------|---------|
+| `friendlyName` | string | ❌ No | New name | Any string |
+| `status` | string | ❌ No | New status | `active`, `suspended`, `closed` |
+
+**Status Options:**
+- `active`: Subaccount is active and operational
+- `suspended`: Temporarily disable (can be reactivated)
+- `closed`: Permanently close (cannot be reopened)
+
+**Request:**
+```json
+{
+  "friendlyName": "Production Client A - Updated",
+  "status": "active"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "sid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "friendlyName": "Production Client A - Updated",
+    "status": "active",
+    "type": "Full",
+    "dateUpdated": "2024-01-10T00:00:00.000Z"
+  }
+}
+```
+
+**cURL:**
+```bash
+# Update name
+curl -X PUT http://localhost:4000/api/phone/subaccounts/ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
+  -H "Content-Type: application/json" \
+  -d '{
+    "friendlyName": "New Name"
+  }'
+
+# Suspend subaccount
+curl -X PUT http://localhost:4000/api/phone/subaccounts/ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "suspended"
+  }'
+```
+
+**Cost:** 💰 **FREE**
+
+---
+
+### 24. Close Subaccount
+
+Permanently close a subaccount. This action is **IRREVERSIBLE**.
+
+**Endpoint:** `DELETE /api/phone/subaccounts/:subaccountSid`
+
+**Path Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `subaccountSid` | string | ✅ Yes | Subaccount SID to close |
+
+**⚠️ Warning:** Closing a subaccount:
+- Is **permanent and irreversible**
+- Releases all phone numbers owned by the subaccount
+- Deletes all associated resources
+- Stops all billing for the subaccount
+- Cannot be undone - create a new subaccount instead
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Subaccount closed successfully",
+  "data": {
+    "sid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "friendlyName": "Old Client",
+    "status": "closed"
+  }
+}
+```
+
+**cURL:**
+```bash
+curl -X DELETE http://localhost:4000/api/phone/subaccounts/ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+**Cost:** 💰 **FREE** (stops all future charges for subaccount)
+
+---
+
+### Using Subaccounts in Your Application
+
+**1. Create and Store Credentials:**
+
+```javascript
+// Create subaccount
+const response = await fetch('http://localhost:4000/api/phone/subaccounts', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    friendlyName: 'Client ABC'
+  })
+});
+
+const { data } = await response.json();
+
+// IMPORTANT: Save these credentials securely
+const subaccountSid = data.sid;
+const subaccountAuthToken = data.authToken;
+
+// Store in your database associated with the client
+await db.clients.update({
+  clientId: 'ABC',
+  twilioAccountSid: subaccountSid,
+  twilioAuthToken: encrypt(subaccountAuthToken) // Encrypt before storing!
+});
+```
+
+**2. Initialize Twilio Client for Subaccount:**
+
+```javascript
+import twilio from 'twilio';
+
+// Use subaccount credentials
+const client = twilio(subaccountSid, subaccountAuthToken);
+
+// Now all operations use the subaccount
+const message = await client.messages.create({
+  body: 'Hello from subaccount!',
+  from: subaccountPhoneNumber,
+  to: '+12125551234'
+});
+```
+
+**3. Multi-Tenant Architecture Example:**
+
+```javascript
+// In your API middleware
+async function getTwilioClient(req) {
+  const clientId = req.user.clientId;
+
+  // Get client's subaccount credentials
+  const client = await db.clients.findById(clientId);
+
+  // Return Twilio client initialized with their subaccount
+  return twilio(
+    client.twilioAccountSid,
+    decrypt(client.twilioAuthToken)
+  );
+}
+
+// Use in routes
+app.post('/send-sms', async (req, res) => {
+  const twilioClient = await getTwilioClient(req);
+
+  const message = await twilioClient.messages.create({
+    body: req.body.message,
+    from: req.user.twilioPhoneNumber,
+    to: req.body.to
+  });
+
+  res.json({ success: true, messageSid: message.sid });
+});
+```
+
+**4. Monitoring Subaccount Usage:**
+
+Each subaccount has separate:
+- Usage statistics
+- Billing records
+- Phone numbers
+- Message/call logs
+
+View in Twilio Console → Monitor → Usage → Select subaccount
 
 ---
 

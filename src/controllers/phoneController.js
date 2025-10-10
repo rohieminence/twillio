@@ -12,6 +12,11 @@ import {
   getPurchasedPhoneNumbers,
   releasePhoneNumber,
   updatePhoneNumber,
+  createSubaccount,
+  listSubaccounts,
+  getSubaccount,
+  updateSubaccount,
+  closeSubaccount,
 } from '../utils/twilioClient.js';
 
 /**
@@ -380,6 +385,152 @@ export async function modifyPhoneNumber(req, res) {
       voiceUrl,
       statusCallback,
     });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error',
+    });
+  }
+}
+
+/**
+ * Create a new subaccount
+ */
+export async function createNewSubaccount(req, res) {
+  try {
+    const { friendlyName } = req.body;
+
+    if (!friendlyName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Friendly name is required',
+      });
+    }
+
+    const result = await createSubaccount(friendlyName);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.status(201).json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error',
+    });
+  }
+}
+
+/**
+ * List all subaccounts
+ */
+export async function getAllSubaccounts(req, res) {
+  try {
+    const { friendlyName, status, limit } = req.query;
+
+    const result = await listSubaccounts({
+      friendlyName,
+      status,
+      limit: limit ? parseInt(limit) : undefined,
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error',
+    });
+  }
+}
+
+/**
+ * Get a specific subaccount
+ */
+export async function getSubaccountDetails(req, res) {
+  try {
+    const { subaccountSid } = req.params;
+
+    if (!subaccountSid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Subaccount SID is required',
+      });
+    }
+
+    const result = await getSubaccount(subaccountSid);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error',
+    });
+  }
+}
+
+/**
+ * Update a subaccount
+ */
+export async function modifySubaccount(req, res) {
+  try {
+    const { subaccountSid } = req.params;
+    const { friendlyName, status } = req.body;
+
+    if (!subaccountSid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Subaccount SID is required',
+      });
+    }
+
+    const result = await updateSubaccount(subaccountSid, {
+      friendlyName,
+      status,
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error',
+    });
+  }
+}
+
+/**
+ * Close a subaccount
+ */
+export async function deleteSubaccount(req, res) {
+  try {
+    const { subaccountSid } = req.params;
+
+    if (!subaccountSid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Subaccount SID is required',
+      });
+    }
+
+    const result = await closeSubaccount(subaccountSid);
 
     if (!result.success) {
       return res.status(400).json(result);

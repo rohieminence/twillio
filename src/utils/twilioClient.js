@@ -481,5 +481,187 @@ export async function updatePhoneNumber(phoneNumberSid, updates) {
   }
 }
 
+/**
+ * Create a Twilio subaccount
+ * @param {string} friendlyName - Name for the subaccount
+ * @returns {Promise<Object>} Subaccount creation result
+ */
+export async function createSubaccount(friendlyName) {
+  try {
+    if (!twilioClient) {
+      throw new Error('Twilio client is not initialized. Please check your credentials.');
+    }
+
+    const subaccount = await twilioClient.api.accounts.create({
+      friendlyName: friendlyName || 'Subaccount',
+    });
+
+    return {
+      success: true,
+      data: {
+        sid: subaccount.sid,
+        friendlyName: subaccount.friendlyName,
+        status: subaccount.status,
+        authToken: subaccount.authToken,
+        dateCreated: subaccount.dateCreated,
+        type: subaccount.type,
+        ownerAccountSid: subaccount.ownerAccountSid,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message || 'Failed to create subaccount',
+      details: error.code,
+    };
+  }
+}
+
+/**
+ * List all subaccounts
+ * @param {Object} options - Filter options
+ * @returns {Promise<Object>} List of subaccounts
+ */
+export async function listSubaccounts(options = {}) {
+  try {
+    if (!twilioClient) {
+      throw new Error('Twilio client is not initialized. Please check your credentials.');
+    }
+
+    const subaccounts = await twilioClient.api.accounts.list({
+      friendlyName: options.friendlyName,
+      status: options.status,
+      limit: options.limit || 50,
+    });
+
+    return {
+      success: true,
+      data: subaccounts.map(acc => ({
+        sid: acc.sid,
+        friendlyName: acc.friendlyName,
+        status: acc.status,
+        type: acc.type,
+        dateCreated: acc.dateCreated,
+        dateUpdated: acc.dateUpdated,
+      })),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message || 'Failed to list subaccounts',
+      details: error.code,
+    };
+  }
+}
+
+/**
+ * Get a specific subaccount
+ * @param {string} subaccountSid - SID of the subaccount
+ * @returns {Promise<Object>} Subaccount details
+ */
+export async function getSubaccount(subaccountSid) {
+  try {
+    if (!twilioClient) {
+      throw new Error('Twilio client is not initialized. Please check your credentials.');
+    }
+
+    const subaccount = await twilioClient.api.accounts(subaccountSid).fetch();
+
+    return {
+      success: true,
+      data: {
+        sid: subaccount.sid,
+        friendlyName: subaccount.friendlyName,
+        status: subaccount.status,
+        type: subaccount.type,
+        dateCreated: subaccount.dateCreated,
+        dateUpdated: subaccount.dateUpdated,
+        ownerAccountSid: subaccount.ownerAccountSid,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message || 'Failed to get subaccount',
+      details: error.code,
+    };
+  }
+}
+
+/**
+ * Update a subaccount
+ * @param {string} subaccountSid - SID of the subaccount
+ * @param {Object} updates - Updates to apply
+ * @returns {Promise<Object>} Update result
+ */
+export async function updateSubaccount(subaccountSid, updates) {
+  try {
+    if (!twilioClient) {
+      throw new Error('Twilio client is not initialized. Please check your credentials.');
+    }
+
+    const updateData = {};
+    if (updates.friendlyName !== undefined) {
+      updateData.friendlyName = updates.friendlyName;
+    }
+    if (updates.status !== undefined) {
+      // Status can be: active, suspended, closed
+      updateData.status = updates.status;
+    }
+
+    const subaccount = await twilioClient.api.accounts(subaccountSid).update(updateData);
+
+    return {
+      success: true,
+      data: {
+        sid: subaccount.sid,
+        friendlyName: subaccount.friendlyName,
+        status: subaccount.status,
+        type: subaccount.type,
+        dateUpdated: subaccount.dateUpdated,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message || 'Failed to update subaccount',
+      details: error.code,
+    };
+  }
+}
+
+/**
+ * Close a subaccount (cannot be reopened)
+ * @param {string} subaccountSid - SID of the subaccount to close
+ * @returns {Promise<Object>} Close result
+ */
+export async function closeSubaccount(subaccountSid) {
+  try {
+    if (!twilioClient) {
+      throw new Error('Twilio client is not initialized. Please check your credentials.');
+    }
+
+    const subaccount = await twilioClient.api.accounts(subaccountSid).update({
+      status: 'closed',
+    });
+
+    return {
+      success: true,
+      message: 'Subaccount closed successfully',
+      data: {
+        sid: subaccount.sid,
+        friendlyName: subaccount.friendlyName,
+        status: subaccount.status,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message || 'Failed to close subaccount',
+      details: error.code,
+    };
+  }
+}
+
 export default twilioClient;
 

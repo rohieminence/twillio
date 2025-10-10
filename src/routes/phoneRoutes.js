@@ -12,6 +12,11 @@ import {
   listPurchasedNumbers,
   deletePhoneNumber,
   modifyPhoneNumber,
+  createNewSubaccount,
+  getAllSubaccounts,
+  getSubaccountDetails,
+  modifySubaccount,
+  deleteSubaccount,
 } from '../controllers/phoneController.js';
 
 const router = express.Router();
@@ -38,6 +43,13 @@ router.post('/numbers/purchase/country', buyPhoneNumberByCountry);
 router.get('/numbers/purchased', listPurchasedNumbers);
 router.delete('/numbers/:phoneNumberSid', deletePhoneNumber);
 router.put('/numbers/:phoneNumberSid', modifyPhoneNumber);
+
+// Subaccount management
+router.post('/subaccounts', createNewSubaccount);
+router.get('/subaccounts', getAllSubaccounts);
+router.get('/subaccounts/:subaccountSid', getSubaccountDetails);
+router.put('/subaccounts/:subaccountSid', modifySubaccount);
+router.delete('/subaccounts/:subaccountSid', deleteSubaccount);
 
 export default router;
 
